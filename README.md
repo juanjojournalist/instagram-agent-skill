@@ -1,338 +1,204 @@
-# The Instagram agent skill
+# Instagram Agent Skill: fork para RDN
 
-Thirteen Claude skills that run an Instagram account. Free, MIT, no signup, no
-API key, nothing to connect.
+Este es el fork [juanjojournalist/instagram-agent-skill](https://github.com/juanjojournalist/instagram-agent-skill), mantenido por juanjojournalist para el trabajo editorial de RDN. Incluye 13 habilidades de Claude para preparar y revisar contenido de Instagram, además de seis scripts Python de ejecución local.
 
-One of them writes your Reels off 26 hook formulas and scores the hook before
-you waste a take on it. One goes and finds the reels that are actually working
-in your niche and ranks them by how far each beat its own account. One writes
-the caption and shows you exactly what the feed shows before the "... more".
-One scores your profile out of 100 and rewrites what lost points. One plans the
-week.
+El proyecto original fue creado por **Jake Schincariol**. Este fork conserva sus créditos y la licencia MIT. Las instrucciones siguientes apuntan al fork; el enlace al proyecto original aparece al final como reconocimiento de autoría.
 
-And one is the humanizer, which is the reason the rest are usable. It strips
-the em dashes, the slop vocabulary and the invisible watermark characters out
-of a draft, then scores what is left against a five-check panel before you ever
-see it.
+**Las habilidades preparan contenido; no publican en Instagram.** La revisión y la publicación quedan a cargo del usuario. No se necesitan credenciales de Instagram ni claves de API para ejecutar los scripts Python. Claude Code requiere su propia instalación y acceso al servicio.
 
-**Nothing gets posted until you say yes.** These skills write. You post.
+## 1. Instalar el plugin en Claude Code
 
-## Install
+Se necesita Claude Code con soporte de plugins y Git disponible. Estos comandos se escriben **dentro de una sesión de Claude Code**, no en la terminal del sistema:
 
-Paste this into Claude:
-
-```
-https://github.com/Jakeschincariol/instagram-agent-skill
-
-Install this skill, then confirm /ig-reel works.
+```text
+/plugin marketplace add juanjojournalist/instagram-agent-skill
+/plugin install instagram-agent@instagram-agent-rdn
 ```
 
-Or do it yourself, in Claude Code:
+En el panel de instalación, confirmar el alcance deseado. Si Claude Code solicita recargar los plugins o reiniciar la sesión, seguir esa indicación.
+
+El marketplace de este fork se llama `instagram-agent-rdn`. El plugin mantiene el nombre `instagram-agent`; por eso se utiliza el identificador completo `instagram-agent@instagram-agent-rdn`. Así se distingue del marketplace original, llamado `instagram-agent-skill`. El campo `source: "./"` carga el plugin desde la raíz de este mismo repositorio.
+
+### Comprobar el origen del plugin
+
+1. Abrir `/plugin` y revisar el marketplace `instagram-agent-rdn`: su origen debe ser `juanjojournalist/instagram-agent-skill` (o la URL HTTPS equivalente), y su página de inicio debe dirigir a este fork.
+2. En los plugins instalados, comprobar que `instagram-agent@instagram-agent-rdn` está habilitado.
+3. Probar una habilidad con su nombre completo:
+
+```text
+/instagram-agent:ig-reel Prepará un guion periodístico en español de Paraguay a partir de los datos que te proporcionaré, sin agregar información.
+```
+
+La aparición del comando por sí sola no demuestra el origen: verificar también los dos primeros puntos. Para los plugins, Claude Code utiliza el prefijo `/instagram-agent:`; los nombres cortos de la tabla siguiente corresponden a las habilidades instaladas manualmente.
+
+### Si ya estaba instalada la versión original
+
+En `/plugin`, revisar el origen antes de hacer cambios. Si está habilitado `instagram-agent@instagram-agent-skill`, deshabilitarlo o desinstalarlo antes de activar el fork: ambos comparten el prefijo `/instagram-agent:`. No es necesario eliminar otros marketplaces.
+
+Si el fork se había registrado anteriormente con el nombre antiguo `instagram-agent-skill`, quitar ese registro desde la administración de marketplaces y volver a agregar `juanjojournalist/instagram-agent-skill`. Esto registra su nuevo nombre `instagram-agent-rdn`. Revisar también las copias manuales `ig-*` en `~/.claude/skills/` o `.claude/skills/`, para evitar utilizar por error una copia anterior.
+
+Referencia de sintaxis: [documentación oficial de marketplaces de Claude Code](https://code.claude.com/docs/en/plugin-marketplaces).
+
+## 2. Ejecutar las herramientas Python en forma local
+
+Esta opción es independiente del plugin: **no requiere Claude Code**. Se necesita Git y Python 3. Los seis scripts usan la biblioteca estándar, procesan archivos locales y no necesitan instalar paquetes con `pip` ni conectarse a Instagram. La descarga inicial del repositorio sí requiere conexión.
+
+Los ejemplos de terminal utilizan Bash en Linux, macOS o WSL. Clonar el fork y entrar en su raíz:
 
 ```bash
-git clone https://github.com/Jakeschincariol/instagram-agent-skill.git
-cp -r instagram-agent-skill/skills/ig-* ~/.claude/skills/
+git clone https://github.com/juanjojournalist/instagram-agent-skill.git
+cd instagram-agent-skill
+python3 --version
 ```
 
-Or as a plugin:
+### Comprobar el repositorio descargado
 
+Desde la raíz del clon:
+
+```bash
+git remote get-url origin
+git rev-parse --show-toplevel
+git log -1 --oneline
 ```
-/plugin marketplace add Jakeschincariol/instagram-agent-skill
-/plugin install instagram-agent
+
+El primer comando debe mostrar `https://github.com/juanjojournalist/instagram-agent-skill.git` o su equivalente SSH `git@github.com:juanjojournalist/instagram-agent-skill.git`. Si muestra `Jakeschincariol`, esa copia apunta al proyecto original. Clonar el fork en otra carpeta y trabajar allí; cambiar solamente el remoto no descarga los archivos del fork. Los otros comandos permiten identificar la carpeta y la revisión utilizadas.
+
+Verificar también los metadatos de esa copia:
+
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+root = Path.cwd()
+market = json.loads((root / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+plugin = json.loads((root / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+url = "https://github.com/juanjojournalist/instagram-agent-skill"
+assert market["name"] == "instagram-agent-rdn", "Marketplace incorrecto"
+entry = next(p for p in market["plugins"] if p["name"] == plugin["name"])
+assert plugin["name"] == "instagram-agent", "Plugin incorrecto"
+assert entry["source"] == "./", "El plugin debe cargarse desde este repositorio"
+assert entry["homepage"] == plugin["homepage"] == plugin["repository"] == url, "Referencias incorrectas"
+print("OK: los metadatos identifican el fork de juanjojournalist")
+PY
 ```
 
-Project-local instead of global: copy the same folders into your repo's
-`.claude/skills/`. No Claude Code at all? Paste any single `SKILL.md` at the top
-of a chat and it runs as a mode. You lose the five Python tools, which is most
-of the point of `/ig-reel` and `/ig-human`, but the rest works.
+Esto comprueba la coherencia de los metadatos locales; no verifica una instalación separada de Claude Code. Para esa instalación, utilizar la comprobación de la sección 1.
 
-Then spend ten minutes on `templates/voice.md`. Copy it to
-`~/.claude/instagram/voice.md` and fill it in, or send Claude three of your own
-reels and say "write my voice.md from these". Every skill reads that file. It
-matters more here than on other platforms, because you have to say the words
-out loud.
+### Prueba rápida sin archivos de entrada
 
-## The thirteen
+Ejecutar desde la raíz del repositorio:
 
-| command | what it does |
+```bash
+python3 skills/ig-caption/caption.py --help
+python3 skills/ig-human/detect.py --help
+```
+
+Si aparecen las opciones de cada programa, Python encuentra los scripts. Esta prueba comprueba su disponibilidad, no la calidad de un contenido ni la instalación del plugin.
+
+### Comandos de trabajo
+
+Crear primero los archivos de entrada en UTF-8 en la raíz del repositorio. Los nombres siguientes son ejemplos: `hooks.txt` contiene un gancho por línea; `guion.txt`, un bloque por línea; los demás `.txt`, el texto que se desea revisar.
+
+```bash
+# Puntuar los ganchos y estimar la duración del guion.
+python3 skills/ig-reel/hookscore.py hooks.txt
+python3 skills/ig-reel/beats.py guion.txt --target 30
+
+# Revisar un copy y buscar las palabras clave indicadas.
+python3 skills/ig-caption/caption.py caption.txt --keywords "Asunción,transporte público"
+
+# Limpiar un borrador y comparar ambas versiones.
+python3 skills/ig-human/humanize.py borrador.txt -o limpio.txt --report
+python3 skills/ig-human/detect.py borrador.txt
+python3 skills/ig-human/detect.py borrador.txt limpio.txt
+
+# Ordenar una muestra de reels recogida por el usuario.
+python3 skills/ig-viral/swipe.py capturas.tsv --out ./swipe.md
+```
+
+`capturas.tsv` debe tener columnas separadas por tabulaciones y una cabecera con `account`, `followers`, `median`, `views` y `hook`. Cada fila representa un reel. `median` es la mediana reciente de visualizaciones de esa cuenta; si no se dispone de ella, el script admite usar seguidores como referencia y lo indica. Ver [swipe.py](skills/ig-viral/swipe.py) para el formato de entrada.
+
+`hookscore.py` devuelve código de salida 1 si ningún gancho alcanza 70 puntos. `caption.py` devuelve código de salida 1 cuando el resultado requiere revisión o corrección. `detect.py` también devuelve 1 cuando su resultado no es `PASS`. Consultar el informe antes de interpretar ese código como un problema de instalación. Cada script ofrece sus opciones con `--help`.
+
+## 3. Alternativa: instalar las habilidades manualmente
+
+Utilizar esta opción **en lugar del plugin** si se prefieren comandos cortos como `/ig-reel`. Desde la raíz de un clon del fork ya verificado:
+
+```bash
+mkdir -p ~/.claude/skills
+cp -r skills/ig-* ~/.claude/skills/
+```
+
+Revisar primero si existen carpetas con esos nombres: la copia puede sobrescribir archivos. Para limitar la instalación a un proyecto, copiar las mismas carpetas a `<tu-proyecto>/.claude/skills/`. Conservar todas las carpetas `ig-*` y sus archivos auxiliares, porque algunos scripts consultan recursos de habilidades vecinas.
+
+Las copias manuales no se actualizan al ejecutar `git pull`: hay que volver a copiarlas. Pegar un `SKILL.md` en un chat transmite sus instrucciones, pero no instala el plugin ni pone los scripts Python a disposición de ese chat.
+
+## 4. Configurar la voz editorial
+
+La plantilla está en [templates/voice.md](templates/voice.md). Si todavía no existe un perfil, copiarla sin sobrescribir uno anterior:
+
+```bash
+mkdir -p ~/.claude/instagram
+cp -n templates/voice.md ~/.claude/instagram/voice.md
+```
+
+Completar `~/.claude/instagram/voice.md` con el tono de RDN, español de Paraguay, criterios de atribución y ejemplos propios. También se pueden proporcionar tres piezas de referencia para preparar ese perfil. Esta configuración orienta la redacción; no cambia los algoritmos ni adapta automáticamente los validadores al español.
+
+## Las 13 habilidades
+
+En el plugin, anteponer `instagram-agent:` al nombre: por ejemplo, `/instagram-agent:ig-caption`.
+
+| Habilidad manual | Función |
 | --- | --- |
-| `/ig-reel` | One idea into a Reel. Three hooks from [26 formulas](skills/ig-reel/hooks.json), scored, then the script, the on-screen text and a timed beat sheet. |
-| `/ig-viral` | Goes and finds what is working in your niche, ranks it by multiple over each account's own median, names the formula, writes the swipe file. |
-| `/ig-caption` | The caption, linted. Shows you the 125 characters the feed actually shows before the tap. |
-| `/ig-carousel` | Swipe posts. The cover that earns the swipe, slide copy, and the 1080x1350 files. |
-| `/ig-story` | The daily story sequence, which sticker does which job, and the DM funnel that starts with them moving first. |
-| `/ig-profile` | Scores your profile against a [12-part rubric](skills/ig-profile/rubric.json) out of 100, then rewrites in fix-first order. |
-| `/ig-plan` | The week. What to post, which format, when, and the 10 accounts to engage with. |
-| `/ig-human` | The humanizer. Two scripts that actually run. See below. |
-| `/ig-comment` | Comments on other people's posts. Nine types, picked by what the post actually is. Never "🔥🔥🔥". |
-| `/ig-reply` | The thread under your own post. Sorts into keyword / lead / substance / question / support / noise, then writes in that order. |
-| `/ig-dm` | The keyword delivery, the first message, the collab pitch, and the two follow-ups. Two. |
-| `/ig-repurpose` | One video, podcast or newsletter into a week of reels and carousels that each stand alone. |
-| `/ig-audit` | Post-mortem on what you already posted. Ranks by outlier multiple and sends per reach, not views. |
+| `/ig-reel` | Prepara ganchos, guion, textos en pantalla y tiempos, con [26 fórmulas](skills/ig-reel/hooks.json). |
+| `/ig-viral` | Guía una investigación de reels y compara su rendimiento con la referencia de cada cuenta. |
+| `/ig-caption` | Redacta y revisa el copy, incluida una vista aproximada de los primeros 125 caracteres. |
+| `/ig-carousel` | Prepara portada, textos y piezas de carrusel de 1080 × 1350. |
+| `/ig-story` | Propone secuencias de historias, stickers y recorridos de respuesta. |
+| `/ig-profile` | Evalúa el perfil sobre 100 con una [rúbrica de 12 apartados](skills/ig-profile/rubric.json). |
+| `/ig-plan` | Organiza el calendario semanal, formatos y cuentas de referencia. |
+| `/ig-human` | Limpia caracteres y expresiones, y aplica cinco comprobaciones heurísticas. |
+| `/ig-comment` | Prepara comentarios según el contenido de una publicación. |
+| `/ig-reply` | Clasifica y redacta respuestas a comentarios recibidos. |
+| `/ig-dm` | Prepara mensajes directos, propuestas de colaboración y seguimientos. |
+| `/ig-repurpose` | Reutiliza materiales extensos en reels y carruseles. |
+| `/ig-audit` | Revisa publicaciones anteriores y compara indicadores de rendimiento. |
 
-## The five tools that actually run
+## Alcance y límites de la evaluación
 
-No dependencies, no network, nothing uploaded. They run on your machine, on
-your text.
+Las puntuaciones son orientativas. El proyecto conserva reglas, vocabulario y patrones centrados en inglés; sus resultados no equivalen a una validación periodística en español de Paraguay. La adaptación de `caption.py` y `detect.py` es un trabajo separado de estas correcciones de instalación.
 
-### Hooks
+El autor original informó una prueba sobre 74 ganchos de YouTube Shorts, no de Instagram Reels: AUC de 0,83 para distinguir ganchos deliberadamente débiles y de 0,56 para separar éxitos de resultados menores del mismo creador. Esas cifras corresponden a su evaluación original, no a una validación de este fork ni del contenido de RDN. El clasificador original pasó de reconocer fórmulas en el 8 % al 49 % de aquella muestra. Las puntuaciones no predicen visualizaciones ni viralidad.
 
-```bash
-python3 hookscore.py hooks.txt              # rank your options
-python3 beats.py script.txt --target 30     # time it before you shoot it
-```
+`caption.py` utiliza una ventana aproximada de 125 caracteres, configurable con `--truncate`, y un límite de cinco hashtags definido en el código. Son parámetros de la herramienta; contrastarlos con el funcionamiento de Instagram al momento de publicar.
 
-```
-HOOK RANKING
-==============================================================================
-->  85.6 STRONG  Nobody tells you that your first 30 reels are supposed to f...
-        weakest: SPECIFICITY (75)
-    81.4 STRONG  I lost $18,000 because of one missing contract.
-        weakest: ADDRESS (70)
-    54.4 OK      Stop scrolling if you want to grow on Instagram in 2026 🔥
-        weakest: STAKES (70)
-        dealbreaker: Opens with "stop scrolling". Asking for attention proves
-                     you have not earned it.
-     9.6 WEAK    Hey guys, today I wanted to talk about content strategy
-        weakest: FRONTLOAD (0)
-        dealbreaker: Greeting. Nobody came to the feed to be greeted.
-```
+`humanize.py` normaliza caracteres invisibles y tipografía, sustituye términos del léxico [slop.json](skills/ig-human/slop.json) y reporta estructuras que requieren revisión. `detect.py` aplica cinco heurísticas locales: variación de longitud de frases, especificidad, vocabulario, tipografía y voz. No consulta detectores externos ni demuestra quién escribió un texto. La limpieza de caracteres tampoco acredita la eliminación de marcas de agua criptográficas.
 
-`beats.py` estimates how long each line takes to say, stacks them into
-timecodes, and flags the four things that kill a Reel in the edit: a hook that
-runs past three seconds, a beat long enough for the viewer to leave, a run of
-lines with nothing concrete in them, and no loop back to the first line.
+Las habilidades no deben inventar cifras, fuentes ni resultados. Si falta un dato, debe solicitarse o marcarse como pendiente. `/ig-viral` orienta una revisión manual de fuentes y no proporciona un recolector automático. Los borradores de comentarios y mensajes directos también requieren revisión y envío por parte del usuario.
 
-```
-BEAT SHEET  ·  73 words  ·  ~26.6s at 165 wpm  ·  target 30.0s
-========================================================================
-  0:00.0   2.9s  HOOK    I lost $18,000 because of one missing contract.
-  0:02.9  14.6s  MID     Here is the exact clause I now put in every single...
-                         ^ 14.6s on one beat
-  0:17.4   2.9s          Section 4. Payment on delivery, not on approval.
-  0:20.4   2.9s          Approval is a feeling. Delivery is a date.
-  0:23.3   3.3s  CTA     That one word change is worth $18,000 to me.
-------------------------------------------------------------------------
-  - Beat 2 runs past 4s. Either split the line or change what is on screen
-    inside it. A static frame is where people leave.
-  - Loops: the last beat repeats "$18,000" from the hook. Second watches are
-    free reach.
-  - 3.5s under target. Either add 9 words or shoot it short. Short is usually
-    right.
-```
+## Archivos principales
 
-### The caption
+| Ruta | Contenido |
+| --- | --- |
+| `.claude-plugin/marketplace.json` | Marketplace del fork y origen local del plugin. |
+| `.claude-plugin/plugin.json` | Identidad, autoría, repositorio y licencia del plugin. |
+| `skills/ig-reel/hookscore.py` | Evaluación de ganchos. |
+| `skills/ig-reel/beats.py` | Estimación de tiempos del guion. |
+| `skills/ig-caption/caption.py` | Revisión de captions y vista de truncamiento. |
+| `skills/ig-human/humanize.py` | Limpieza de texto. |
+| `skills/ig-human/detect.py` | Panel de cinco heurísticas. |
+| `skills/ig-viral/swipe.py` | Comparación de reels y clasificación de fórmulas. |
+| `templates/voice.md` | Plantilla de voz editorial. |
 
-```bash
-python3 caption.py caption.txt --keywords "client contracts,freelance pricing"
-```
+## Créditos
 
-Instagram gives a caption about 125 characters in the feed and hides the rest
-behind a tap. Almost every caption that fails, fails there. So the first thing
-this prints is that window, as a box, the way a scrolling stranger reads it:
+Proyecto original de **Jake Schincariol**, [opusjake.ai](https://opusjake.ai): [Jakeschincariol/instagram-agent-skill](https://github.com/Jakeschincariol/instagram-agent-skill). Ese enlace identifica al autor y su trabajo original; para instalar este fork, utilizar las instrucciones de arriba.
 
-```
-  WHAT THE FEED SHOWS
-  +------------------------------------------------------+
-  | I lost $18,000 because of one missing clause in a    |
-  | contract, and the worst part is that I had read the  |
-  | thing twice before I si                              |
-  +-------------------------------------------- ... more +
+Fork mantenido por [juanjojournalist](https://github.com/juanjojournalist), con orientación al trabajo de RDN.
 
-  PASS  LENGTH            389 / 2200 characters
-  WARN  FIRST LINE        133 characters, so it gets cut at 125 mid-thought
-  PASS  HOOK IS CONCRETE  2 numbers or names in the visible window
-  PASS  HASHTAGS          3 tags: #freelance #contracts #agencyowner
-  PASS  ONE ASK           one call to action: comment a keyword
-  WARN  SEARCH TERMS      1/2 present. Missing: client contracts
-```
+Proyecto relacionado del autor original: [linkedin-agent-skill](https://github.com/Jakeschincariol/linkedin-agent-skill).
 
-It enforces the current hashtag cap, which is **five per post**, not thirty.
-Instagram cut it on 18 December 2025.
+## Licencia
 
-### The humanizer
-
-```bash
-python3 humanize.py draft.txt --report      # clean it, show every change
-python3 detect.py draft.txt                  # score it, five checks
-python3 detect.py before.txt after.txt       # prove the delta
-```
-
-**What comes out automatically:**
-
-- **Invisible characters.** Zero-width spaces and joiners, word joiners, soft
-  hyphens, byte-order marks, Unicode tag characters, invisible separators,
-  non-breaking and narrow spaces. Your keyboard does not make these. They
-  survive copy-paste and they are invisible in every editor you own.
-- **Typography.** Em dash to comma, en dash to hyphen, curly quotes to
-  straight, ellipsis to three dots, and the orphaned punctuation that leaves.
-- **The lexicon.** 154 stock words and phrases with plain-English replacements.
-  The last block of it is Instagram-specific: "stop scrolling", "in today's
-  video", "follow for more", "tag someone who needs this", "the algorithm
-  loves", "run don't walk". It lives in
-  [`slop.json`](skills/ig-human/slop.json) and it is meant to be edited.
-
-**What gets flagged instead of fixed:** "It's not just X, it's Y", rule-of-three
-triads, the video preamble, emoji bullet lists, three shouted words in a row,
-hashtag walls, reflex follow bait, uniform sentence length. Changing the shape
-of a sentence needs judgement, so those come back for a rewrite rather than
-getting mangled by a regex.
-
-Run against a caption written to be as bad as possible:
-
-```
-  BURSTINESS    ###################.....  78.4
-  SPECIFICITY   #############...........  53.6    3.4 concrete markers per 100 words
-  SLOP DENSITY  ........................   0.0    20 stock terms, 23.0 per 100 words
-  FINGERPRINT   ################........  68.7    1 em dash
-  VOICE         #################.......  70.0    9 structural tells
-  ------------------------------------------------------------
-  HUMAN SCORE   ########................  32.5   FLAGGED
-```
-
-After `humanize.py`, with the flagged structures still unrewritten:
-
-```
-  HUMAN SCORE   ###################.....  79.7   PASS    (+47.2)
-```
-
-### The swipe file
-
-```bash
-python3 swipe.py captured.tsv --out ~/.claude/instagram/swipe.md
-```
-
-Raw views are not evidence. A 2,000,000-follower account doing 400,000 views
-had a quiet Tuesday. A 4,000-follower account doing 400,000 views found
-something. `swipe.py` ranks on the multiple over each account's own median,
-names the hook formula, and prints what separates the top third from the
-bottom third.
-
-```
-SWIPE FILE  ·  4 reels  ·  4 accounts  ·  baseline: account median
-==============================================================================
-    60.0x  hook  57  #9  The Steal              @c                 180,000
-           "steal this four line follow up it took me two years"
-    37.5x  hook  86  #3  Nobody Tells You       @a                 412,000
-           "nobody tells you that your first 30 reels are supposed to flop"
-     1.3x  hook  13  -   unclassified           @b               1,200,000
-           "in this video I am going to show you my morning routine"
-```
-
-## What I actually measured, which is the part worth reading
-
-I did not want to publish a hook scorer on the claim that it feels right, so I
-tested it. The corpus is **74 real short-form hooks**: the first three seconds
-of the auto-caption track from the top eight and bottom eight performing shorts
-on each of five channels, view counts from 931 to 550,000.
-
-They are YouTube Shorts rather than Reels, because Instagram does not hand you
-view counts you can collect without logging into somebody's account, and
-scraping it would violate the Terms this repo tells you not to violate. The
-hook grammar is the same and the sourcing is public. That is a real limitation
-and it is stated here rather than buried.
-
-**Three results, two of them uncomfortable:**
-
-**1. It catches bad hooks well.** Against ten hooks written deliberately badly,
-AUC 0.83, and nine of the ten scored below the median of the real corpus. If
-your hook opens on a greeting, a preamble or nothing concrete, this tells you.
-
-**2. It does not pick winners.** Separating a good creator's hits from that
-same creator's misses: **AUC 0.56, where 0.50 is a coin flip.** Of the five
-checks, only SPECIFICITY separated the bands meaningfully, by 60 points of
-median. STAKES and ADDRESS had identical medians in both bands, which means on
-this corpus they measured nothing.
-
-So the honest use is: kill the obviously weak hooks before you shoot them, then
-trust your own retention graph. Nothing that reads text can tell you which of
-two decent hooks will travel, because that is decided by your face, your edit,
-your audio and who Instagram shows it to.
-
-**3. The formula classifier was broken and the test is what caught it.** The
-`match` regexes in `hooks.json` were written off my own templates, and they
-named **8%** of real hooks. People do not speak in templates. Rewriting them
-against actual transcribed speech took it to **49%**, and four formulas went
-into the set because they kept appearing and were not there: Contrarian Flip,
-The Statistic, The Reveal, Someone Else's Result, plus The Superlative. On the
-other 51% it abstains, which is correct: a lot of short-form is podcast clips
-that have no hook formula at all.
-
-One fixed bug worth naming: `SPECIFICITY` only counted digits, so "zero
-dollars" and "three marketing books" scored as having nothing concrete in them.
-Spoken hooks say their numbers out loud.
-
-If you re-run this on a bigger or cleaner corpus and get a different answer, I
-would rather know. The measurement script is not in the repo because it depends
-on `yt-dlp`, but the method is four lines and is written out in
-[`/ig-viral`](skills/ig-viral/SKILL.md).
-
-## The fine print, which is the honest part
-
-**These skills do not post to Instagram.** There is a real Content Publishing
-API for Professional accounts, and it needs a Meta developer app, a linked
-Page, a long-lived token and app review, which is not a thing a skill can hand
-you. Everything else people use to automate posting, commenting, following or
-DMing is browser automation or a third-party tool, and both violate
-[Instagram's Terms of Use](https://help.instagram.com/581066165581870) and get
-accounts action-blocked. So every skill here ends the same way: a copy-ready
-block, and you post it. That is not a limitation bolted on afterwards, it is
-the design, and it is why the approval gate is real rather than a setting.
-
-The one exception is keyword auto-replies in DMs, which Instagram supports
-through its own tools and approved partners, and which only fire after somebody
-comments first. `/ig-dm` says where that line is.
-
-**`/ig-viral` reads, it does not scrape.** Ten accounts, a dozen reels each, at
-human speed, with you driving your own browser. It never asks for your password
-and never logs in as you. Automated collection at volume is the thing that gets
-accounts restricted, and a crawler is not what this is.
-
-**The five detection checks are local heuristics, not detector APIs.** They are
-modelled on the signals public detectors key on and they run entirely on your
-machine. They are not GPTZero, Originality, Copyleaks, Winston or Turnitin,
-they do not call those services, and they cannot promise those verdicts. Fixing
-what they measure tends to move those numbers, because they are measuring the
-same underlying things. That is the whole claim. Nobody can honestly sell you
-"undetectable", and anybody who does is selling you something.
-
-**The invisible-character pass is real and it is narrow.** It removes the
-zero-width and format characters that end up in generated text and survive a
-copy-paste. That is a genuine, checkable fingerprint. It is not a claim about
-defeating a cryptographic watermarking scheme, and this repo does not make one.
-
-**Nothing here fabricates.** No invented metrics, clients or outcomes go under
-your name. If a draft needs a number you have not given, it comes back with
-`{{your number}}` in it and a flag, every time.
-
-**Platform numbers go stale.** The hashtag cap moved from 30 to 5 in December
-2025 while this repo was being written, and the linter had the old number in it
-until the fact got checked. If something here contradicts what Instagram is
-doing when you read it, Instagram is right.
-
-## Files
-
-```
-skills/ig-reel/hooks.json          26 hook formulas: template, example, on-screen line,
-                                   what it is for, how it gets ruined, and a match regex
-skills/ig-reel/hookscore.py        the five-property hook panel
-skills/ig-reel/beats.py            script to timed beat sheet
-skills/ig-caption/caption.py       the truncation preview and the caption linter
-skills/ig-human/slop.json          the lexicon: 154 terms, 18 invisible classes, 16 tells
-skills/ig-human/humanize.py        the three cleaning passes
-skills/ig-human/detect.py          the five-check panel
-skills/ig-viral/swipe.py           outlier ranking and formula classification
-skills/ig-profile/rubric.json      the 100-point profile score
-templates/voice.md                 your voice profile. Fill this in first.
-```
-
-## Credit
-
-Made by Jake Schincariol, [opusjake.ai](https://opusjake.ai).
-
-Sibling repo, same idea for a different platform:
-[linkedin-agent-skill](https://github.com/Jakeschincariol/linkedin-agent-skill).
-
-## License
-
-MIT. Take it, change it, ship it.
+[MIT](LICENSE). Se conserva íntegro el aviso de copyright de 2026 de Jake Schincariol y el texto de la licencia original.
